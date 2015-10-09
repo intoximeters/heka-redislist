@@ -82,7 +82,6 @@ func (r *RedisListInput) ConfigStruct() interface{} {
 }
 
 func (r *RedisListInput) Init(config interface{}) error {
-	fmt.Println("Init...")
 	conf := config.(*RedisListInputConfig)
 	r.config = conf
 
