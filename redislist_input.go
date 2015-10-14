@@ -209,7 +209,7 @@ func (r *RedisListInput) Run(ir pipeline.InputRunner, helper pipeline.PluginHelp
 		case err, ok = <-errChan:
 			_, pluginExit := err.(pipeline.PluginExitError)
 			if pluginExit {
-				r.Stop()
+				return err
 			} else if err == io.EOF {
 				return pipeline.NewPluginExitError("EOF reading redis result: %v", err)
 			} else {
