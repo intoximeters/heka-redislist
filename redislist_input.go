@@ -76,7 +76,6 @@ func (r *RedisListInput) ConfigStruct() interface{} {
 		BufferPool:   250,
 		BatchSize:    25,
 		InputThreads: 2,
-		Key:          "logstash", //XXX This is a bug with reloading plugins
 	}
 	return config
 }

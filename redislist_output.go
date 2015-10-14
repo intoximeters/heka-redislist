@@ -53,7 +53,7 @@ func (r *RedisListOutput) Prepare(or pipeline.OutputRunner, helper pipeline.Plug
 		DB:   r.config.Database,
 	})
 
-	// TODO Create a bunch of flush go threads
+	// TODO Determine if we actually need a bunch of flush threads and if so, make them here
 	return nil
 }
 
