@@ -86,7 +86,7 @@ func (r *RedisListInput) Init(config interface{}) error {
 	r.config = conf
 
 	if r.config.Key == "" {
-		return errors.New("must specify a Redis `key` to push to")
+		return errors.New("must specify a Redis `key` to push messages to")
 	}
 
 	r.client = redis.NewClient(&redis.Options{
@@ -127,7 +127,7 @@ func (r *RedisListInput) pollRedis(eventChan chan<- string, errChan chan<- error
 				}
 			} else {
 				// TODO This should probably cause a panic/kill the plugin
-				errChan <- fmt.Errorf("error type assertion failure in redis result: %v - %v", result, val)
+				errChan <- fmt.Errorf("type assertion failure in redis result: %v - %v", result, val)
 			}
 		}
 
@@ -161,13 +161,13 @@ func (r *RedisListInput) Run(ir pipeline.InputRunner, helper pipeline.PluginHelp
 	// available but doesnt support Lua scripting
 	if _, err = r.client.Ping().Result(); err != nil {
 		r.cleanup()
-		return pipeline.NewPluginExitError("error issuing redis ping: %v", err)
+		return pipeline.NewPluginExitError("redis ping failure: %v", err)
 	}
 
 	sha, err := r.client.ScriptLoad(BATCH_SCRIPT).Result()
 	if err != nil {
 		r.cleanup()
-		return pipeline.NewPluginExitError("error loading lua redis script: %v", err)
+		return pipeline.NewPluginExitError("unable to load lua redis script: %v", err)
 	}
 	r.luaSha = sha
 
@@ -211,8 +211,7 @@ func (r *RedisListInput) Run(ir pipeline.InputRunner, helper pipeline.PluginHelp
 			if pluginExit {
 				r.Stop()
 			} else if err == io.EOF {
-				// TODO Do we need to stop the workers instead? Is this right?
-				return pipeline.NewPluginExitError("error reading redis result: %v", err)
+				return pipeline.NewPluginExitError("EOF reading redis result: %v", err)
 			} else {
 				r.runner.LogError(err)
 			}
@@ -236,7 +235,7 @@ func (r *RedisListInput) CleanupForRestart() {
 func (r *RedisListInput) cleanup() {
 	if r.client != nil {
 		if err := r.client.Close(); err != nil {
-			r.runner.LogError(fmt.Errorf("error closing redis client: %v", err))
+			r.runner.LogError(fmt.Errorf("failure closing redis client: %v", err))
 		}
 		r.client = nil
 	}

@@ -42,7 +42,7 @@ func (r *RedisListOutput) Init(config interface{}) error {
 	r.config = conf
 
 	if r.config.Key == "" {
-		return errors.New("must specify a Redis `key` to pop from")
+		return errors.New("must specify a Redis `key` to pop messages from")
 	}
 
 	return nil
@@ -78,7 +78,7 @@ func (r *RedisListOutput) ProcessMessage(pack *pipeline.PipelinePack) (err error
 func (r *RedisListOutput) CleanUp() {
 	if r.client != nil {
 		if err := r.client.Close(); err != nil {
-			r.runner.LogError(fmt.Errorf("error closing redis client: %v", err))
+			r.runner.LogError(fmt.Errorf("failure closing redis client: %v", err))
 		}
 		r.client = nil
 	}
