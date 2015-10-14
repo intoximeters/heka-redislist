@@ -5,18 +5,15 @@ package heka_redislist
 import (
 	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/mozilla-services/heka/pipeline"
 	"gopkg.in/redis.v3"
 )
 
 type RedisListOutput struct {
-	wgOut    sync.WaitGroup
-	stopChan chan bool
-	runner   pipeline.OutputRunner
-	client   *redis.Client
-	config   *RedisListOutputConfig
+	runner pipeline.OutputRunner
+	client *redis.Client
+	config *RedisListOutputConfig
 }
 
 type RedisListOutputConfig struct {
