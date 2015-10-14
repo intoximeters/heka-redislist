@@ -86,8 +86,7 @@ func (r *RedisListInput) Init(config interface{}) error {
 
 	r.client = redis.NewClient(&redis.Options{
 		Addr: r.config.Address,
-		// TODO add support for different port
-		DB: r.config.Database,
+		DB:   r.config.Database,
 	})
 
 	r.stopChan = make(chan bool)
@@ -221,11 +220,7 @@ func (r *RedisListInput) Run(ir pipeline.InputRunner, helper pipeline.PluginHelp
 }
 
 func (r *RedisListInput) Stop() {
-	if r.client != nil {
-		if err := r.client.Close(); err != nil {
-			r.runner.LogError(fmt.Errorf("error closing redis client: %v", err))
-		}
-	}
+	r.cleanup()
 	close(r.workerStopChan)
 }
 
