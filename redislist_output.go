@@ -3,6 +3,7 @@
 package heka_redislist
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
@@ -42,6 +43,10 @@ func (r *RedisListOutput) ConfigStruct() interface{} {
 func (r *RedisListOutput) Init(config interface{}) error {
 	conf := config.(*RedisListOutputConfig)
 	r.config = conf
+
+	if r.config.Key == "" {
+		return errors.New("must specify a Redis `key` to pop from")
+	}
 
 	return nil
 }

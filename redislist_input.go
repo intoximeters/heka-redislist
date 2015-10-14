@@ -3,6 +3,7 @@
 package heka_redislist
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -83,6 +84,10 @@ func (r *RedisListInput) ConfigStruct() interface{} {
 func (r *RedisListInput) Init(config interface{}) error {
 	conf := config.(*RedisListInputConfig)
 	r.config = conf
+
+	if r.config.Key == "" {
+		return errors.New("must specify a Redis `key` to push to")
+	}
 
 	r.client = redis.NewClient(&redis.Options{
 		Addr: r.config.Address,
