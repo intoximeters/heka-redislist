@@ -74,10 +74,12 @@ func (r *RedisListOutput) ProcessMessage(pack *pipeline.PipelinePack) (err error
 }
 
 func (r *RedisListOutput) CleanUp() {
-	if err := r.client.Close(); err != nil {
-		r.runner.LogError(fmt.Errorf("error closing redis client: %v", err))
+	if r.client != nil {
+		if err := r.client.Close(); err != nil {
+			r.runner.LogError(fmt.Errorf("error closing redis client: %v", err))
+		}
+		r.client = nil
 	}
-	r.client = nil
 }
 
 func init() {

@@ -222,8 +222,10 @@ func (r *RedisListInput) Run(ir pipeline.InputRunner, helper pipeline.PluginHelp
 }
 
 func (r *RedisListInput) Stop() {
-	if err := r.client.Close(); err != nil {
-		r.runner.LogError(fmt.Errorf("error closing redis client: %v", err))
+	if r.client != nil {
+		if err := r.client.Close(); err != nil {
+			r.runner.LogError(fmt.Errorf("error closing redis client: %v", err))
+		}
 	}
 	close(r.workerStopChan)
 }
