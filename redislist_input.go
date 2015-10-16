@@ -227,12 +227,10 @@ func (r *RedisListInput) Run(ir pipeline.InputRunner, helper pipeline.PluginHelp
 			}
 
 			atomic.AddInt64(&r.processMessageCount, 1)
-			err = splitter.SplitStream(strings.NewReader(msg), deliverer)
-			// TODO If err is nil it likely means we need to call split again.
-			// See http://hekad.readthedocs.org/en/latest/developing/plugin.html?highlight=splitstream#inputs
-			if err != nil && err != io.EOF {
+			evtErr := splitter.SplitStream(strings.NewReader(msg), deliverer)
+			if evtErr != nil && evtErr != io.EOF {
 				atomic.AddInt64(&r.processMessageFailures, 1)
-				return fmt.Errorf("error reading redis result: %v", err)
+				return fmt.Errorf("evtError reading redis result: %v", evtErr)
 			}
 
 		case err, ok = <-errChan:
