@@ -218,6 +218,8 @@ func (r *RedisListInput) Run(ir pipeline.InputRunner, helper pipeline.PluginHelp
 		close(r.stopChan)
 	}()
 
+	var evtErr error
+
 	ok := true
 	for ok {
 		select {
@@ -227,8 +229,11 @@ func (r *RedisListInput) Run(ir pipeline.InputRunner, helper pipeline.PluginHelp
 			}
 
 			atomic.AddInt64(&r.processMessageCount, 1)
-			evtErr := splitter.SplitStream(strings.NewReader(msg), deliverer)
-			if evtErr != nil && evtErr != io.EOF {
+			evtErr = nil
+			for evtErr == nil {
+				evtErr = splitter.SplitStream(strings.NewReader(msg), deliverer)
+			}
+			if evtErr != io.EOF {
 				atomic.AddInt64(&r.processMessageFailures, 1)
 				return fmt.Errorf("evtError reading redis result: %v", evtErr)
 			}
