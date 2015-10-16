@@ -235,7 +235,7 @@ func (r *RedisListInput) Run(ir pipeline.InputRunner, helper pipeline.PluginHelp
 			}
 			if evtErr != io.EOF {
 				atomic.AddInt64(&r.processMessageFailures, 1)
-				return fmt.Errorf("evtError reading redis result: %v", evtErr)
+				return fmt.Errorf("failure reading redis result: %v", evtErr)
 			}
 
 		case err, ok = <-errChan:
