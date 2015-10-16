@@ -23,8 +23,10 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
+	"github.com/mozilla-services/heka/message"
 	"github.com/mozilla-services/heka/pipeline"
 	"gopkg.in/redis.v3"
 )
@@ -55,6 +57,12 @@ const (
 )
 
 type RedisListInput struct {
+	processMessageCount    int64
+	processMessageFailures int64
+	redisPollCount         int64
+	redisPollFailures      int64
+	redisPingFailures      int64
+
 	wgIn           sync.WaitGroup
 	stopChan       chan bool
 	workerStopChan chan bool
@@ -128,12 +136,14 @@ func (r *RedisListInput) pollRedis(eventChan chan<- string, errChan chan<- error
 
 		if err != nil {
 			errChan <- fmt.Errorf("error from redis client: %v", err)
+			atomic.AddInt64(&r.redisPollFailures, 1)
 			// If we get an get EOF lets just exit because we lost our
 			// connection to Redis and we'll just exit the plugin
 			if err == io.EOF {
 				return
 			}
 		} else {
+			atomic.AddInt64(&r.redisPollCount, 1)
 			result, ok := val.([]interface{})
 			if ok {
 				for _, line := range result {
@@ -175,6 +185,7 @@ func (r *RedisListInput) Run(ir pipeline.InputRunner, helper pipeline.PluginHelp
 	// available but doesnt support Lua scripting
 	if _, err = r.client.Ping().Result(); err != nil {
 		r.cleanup()
+		atomic.AddInt64(&r.redisPingFailures, 1)
 		return pipeline.NewPluginExitError("redis ping failure: %v", err)
 	}
 
@@ -207,6 +218,8 @@ func (r *RedisListInput) Run(ir pipeline.InputRunner, helper pipeline.PluginHelp
 		close(r.stopChan)
 	}()
 
+	var evtErr error
+
 	ok := true
 	for ok {
 		select {
@@ -215,9 +228,14 @@ func (r *RedisListInput) Run(ir pipeline.InputRunner, helper pipeline.PluginHelp
 				return nil
 			}
 
-			err = splitter.SplitStream(strings.NewReader(msg), deliverer)
-			if err != nil && err != io.EOF {
-				return fmt.Errorf("error reading redis result: %v", err)
+			atomic.AddInt64(&r.processMessageCount, 1)
+			evtErr = nil
+			for evtErr == nil {
+				evtErr = splitter.SplitStream(strings.NewReader(msg), deliverer)
+			}
+			if evtErr != io.EOF {
+				atomic.AddInt64(&r.processMessageFailures, 1)
+				return fmt.Errorf("failure reading redis result: %v", evtErr)
 			}
 
 		case err, ok = <-errChan:
@@ -253,6 +271,20 @@ func (r *RedisListInput) cleanup() {
 		}
 		r.client = nil
 	}
+}
+
+func (r *RedisListInput) ReportMsg(msg *message.Message) error {
+	message.NewInt64Field(msg, "RedisPollCount",
+		atomic.LoadInt64(&r.redisPollCount), "count")
+	message.NewInt64Field(msg, "RedisPollFailures",
+		atomic.LoadInt64(&r.redisPollFailures), "count")
+	message.NewInt64Field(msg, "RedisPingFailures",
+		atomic.LoadInt64(&r.redisPingFailures), "count")
+	message.NewInt64Field(msg, "ProcessMessageCount",
+		atomic.LoadInt64(&r.processMessageCount), "count")
+	message.NewInt64Field(msg, "ProcessMessageFailures",
+		atomic.LoadInt64(&r.processMessageFailures), "count")
+	return nil
 }
 
 func init() {

@@ -19,12 +19,18 @@ package heka_redislist
 import (
 	"errors"
 	"fmt"
+	"sync/atomic"
 
+	"github.com/mozilla-services/heka/message"
 	"github.com/mozilla-services/heka/pipeline"
 	"gopkg.in/redis.v3"
 )
 
 type RedisListOutput struct {
+	processMessageCount    int64
+	processMessageFailures int64
+	encodingErrors         int64
+
 	runner pipeline.OutputRunner
 	client *redis.Client
 	config *RedisListOutputConfig
@@ -77,10 +83,13 @@ func (r *RedisListOutput) ProcessMessage(pack *pipeline.PipelinePack) (err error
 	var record []byte
 
 	if record, err = r.runner.Encode(pack); err != nil {
+		atomic.AddInt64(&r.encodingErrors, 1)
 		return fmt.Errorf("can't encode: %s", err)
 	}
 
+	atomic.AddInt64(&r.processMessageCount, 1)
 	if err = r.client.RPush(r.config.Key, string(record[:])).Err(); err != nil {
+		atomic.AddInt64(&r.processMessageFailures, 1)
 		return pipeline.NewRetryMessageError("writing to %s: %s", r.config.Address, err)
 	} else {
 		r.runner.UpdateCursor(pack.QueueCursor)
@@ -96,6 +105,16 @@ func (r *RedisListOutput) CleanUp() {
 		}
 		r.client = nil
 	}
+}
+
+func (r *RedisListOutput) ReportMsg(msg *message.Message) error {
+	message.NewInt64Field(msg, "EncodingErrors",
+		atomic.LoadInt64(&r.encodingErrors), "count")
+	message.NewInt64Field(msg, "ProcessMessageCount",
+		atomic.LoadInt64(&r.processMessageCount), "count")
+	message.NewInt64Field(msg, "ProcessMessageFailures",
+		atomic.LoadInt64(&r.processMessageFailures), "count")
+	return nil
 }
 
 func init() {
