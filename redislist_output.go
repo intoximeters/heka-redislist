@@ -46,13 +46,26 @@ type RedisListOutputConfig struct {
 	Key string `toml:"key"`
 	// Number of threads to process items from buffer
 	OutputThreads int `toml:"output_threads"`
+	// Defaults to true
+	UseBuffering *bool `toml:"use_buffering"`
+	Buffering    pipeline.QueueBufferConfig
 }
 
 func (r *RedisListOutput) ConfigStruct() interface{} {
+	b := true
+	// Defaults here are based on the TcpOutput
+	queueConfig := pipeline.QueueBufferConfig{
+		CursorUpdateCount: 50,
+		MaxBufferSize:     0,
+		MaxFileSize:       128 * 1024 * 1024,
+		FullAction:        "shutdown",
+	}
 	config := &RedisListOutputConfig{
 		Address:       "localhost:6379",
 		Database:      0,
 		OutputThreads: 1,
+		UseBuffering:  &b,
+		Buffering:     queueConfig,
 	}
 	return config
 }
