@@ -88,10 +88,9 @@ func (r *RedisListOutput) Init(config interface{}) error {
 }
 
 func (r *RedisListOutput) Prepare(or pipeline.OutputRunner, helper pipeline.PluginHelper) error {
-	if r.config.UseFraming == nil {
-		if _, ok := or.Encoder().(*pipeline.ProtobufEncoder); ok {
-			or.SetUseFraming(true)
-		}
+	b := true
+	if r.config.UseFraming == &b {
+		or.SetUseFraming(true)
 	}
 
 	r.pConfig = helper.PipelineConfig()

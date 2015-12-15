@@ -104,7 +104,7 @@ func (r *RedisListInput) ConfigStruct() interface{} {
 		BatchSize:    25,
 		InputThreads: 2,
 		Decoder:      "ProtobufDecoder",
-		Splitter:     "HekaFramingSplitter",
+		Splitter:     "NullSplitter",
 	}
 	return config
 }
