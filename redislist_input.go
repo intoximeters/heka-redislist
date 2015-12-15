@@ -89,6 +89,10 @@ type RedisListInputConfig struct {
 	BufferPool int `toml:"buffer_pool"`
 	// Number of threads to poll Redis
 	InputThreads int `toml:"input_threads"`
+	// For default decoder
+	Decoder string
+	// For default splitter
+	Splitter string
 }
 
 func (r *RedisListInput) ConfigStruct() interface{} {
@@ -99,6 +103,8 @@ func (r *RedisListInput) ConfigStruct() interface{} {
 		BufferPool:   250,
 		BatchSize:    25,
 		InputThreads: 2,
+		Decoder:      "ProtobufDecoder",
+		Splitter:     "HekaFramingSplitter",
 	}
 	return config
 }
