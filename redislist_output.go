@@ -34,7 +34,7 @@ type RedisListOutput struct {
 	runner  pipeline.OutputRunner
 	client  *redis.Client
 	config  *RedisListOutputConfig
-	pConfig *PipelineConfig
+	pConfig *pipeline.PipelineConfig
 }
 
 type RedisListOutputConfig struct {
@@ -89,7 +89,7 @@ func (r *RedisListOutput) Init(config interface{}) error {
 
 func (r *RedisListOutput) Prepare(or pipeline.OutputRunner, helper pipeline.PluginHelper) error {
 	if r.config.UseFraming == nil {
-		if _, ok := or.Encoder().(*ProtobufEncoder); ok {
+		if _, ok := or.Encoder().(*pipeline.ProtobufEncoder); ok {
 			or.SetUseFraming(true)
 		}
 	}
