@@ -31,9 +31,10 @@ type RedisListOutput struct {
 	processMessageFailures int64
 	encodingErrors         int64
 
-	runner pipeline.OutputRunner
-	client *redis.Client
-	config *RedisListOutputConfig
+	runner  pipeline.OutputRunner
+	client  *redis.Client
+	config  *RedisListOutputConfig
+	pConfig *PipelineConfig
 }
 
 type RedisListOutputConfig struct {
@@ -49,6 +50,10 @@ type RedisListOutputConfig struct {
 	// Defaults to true
 	UseBuffering *bool `toml:"use_buffering"`
 	Buffering    pipeline.QueueBufferConfig
+	// Use Heka Heka streaming or not
+	UseFraming *bool `toml:"use_framing"`
+	// Used for default encoder
+	Encoder string
 }
 
 func (r *RedisListOutput) ConfigStruct() interface{} {
@@ -66,6 +71,7 @@ func (r *RedisListOutput) ConfigStruct() interface{} {
 		OutputThreads: 1,
 		UseBuffering:  &b,
 		Buffering:     queueConfig,
+		Encoder:       "ProtobufEncoder",
 	}
 	return config
 }
@@ -82,13 +88,22 @@ func (r *RedisListOutput) Init(config interface{}) error {
 }
 
 func (r *RedisListOutput) Prepare(or pipeline.OutputRunner, helper pipeline.PluginHelper) error {
+	if r.config.UseFraming == nil {
+		if _, ok := or.Encoder().(*ProtobufEncoder); ok {
+			or.SetUseFraming(true)
+		}
+	}
+
+	r.pConfig = helper.PipelineConfig()
 	r.runner = or
+
 	r.client = redis.NewClient(&redis.Options{
 		Addr: r.config.Address,
 		DB:   r.config.Database,
 	})
 
 	// TODO Determine if we actually need a bunch of flush threads and if so, make them here
+
 	return nil
 }
 
